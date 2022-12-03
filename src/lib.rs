@@ -36,7 +36,7 @@
 pub mod node;
 pub mod cache;
 pub mod utils;
-pub mod ops;
+pub mod operations;
 
 pub use utils::*;
 pub use node::Node;
