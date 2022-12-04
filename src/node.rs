@@ -1,7 +1,7 @@
-//! Basic types to create computational graph with caching.
+//! Basic trait and types to create computational graph with caching.
 
 use std::rc::{Rc, Weak};
-use std::cell::{RefCell, Cell};
+use std::cell::RefCell;
 
 /// Node trait represent a compute graph node that can return a (cached) value, get call for invalidation
 /// and get link to another node dependent on the current and so its cache must be invaludated
@@ -73,41 +73,4 @@ impl<T> Dependencies<T> {
         }
     }
 
-}
-
-/// Input node present some f32 input value. This node stores a list of dependent nodes `dep`
-/// and invalidates their caches when the input values is changed.
-pub struct Input<'a> {
-    _name: &'a str,
-    value: Cell<f32>,
-    dep: Dependencies<f32>
-}
-
-impl<'a> Input<'a> {
-    pub fn new(_name: &'a str) -> Input<'a>{
-        Input { _name, value: Default::default(), dep: Default::default() }
-    }
-
-    /// Set new value `x` and require invalidation of the caches of the dependent nodes.
-    pub fn set(&self, x: f32) {
-        self.invalidate();
-        self.value.set(x);
-    }
-}
-
-impl<'a> Node for Input<'a> {
-    type Output = f32;
-
-    fn compute(&self) -> Self::Output {
-        self.value.get()
-    }
-
-    /// Require invalidation of the dependent nodes.
-    fn invalidate(&self) {
-        self.dep.invalidate();
-    }
-
-    fn add_dependent(&self, n: Rc<dyn Node<Output = Self::Output>>) {
-        self.dep.add(n);
-    }
 }

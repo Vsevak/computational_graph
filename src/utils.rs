@@ -1,7 +1,7 @@
 //! Includes some functions to create computational graph with common math operations.
 
-use crate::node::{Input, Node};
-use crate::operations::{Binary, Unary};
+use crate::node::Node;
+use crate::operations::{Input, Binary, Unary};
 
 use std::rc::Rc;
 

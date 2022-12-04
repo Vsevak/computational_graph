@@ -3,45 +3,42 @@
 use crate::node::{Node, Dependencies};
 use crate::cache::Cache;
 
+use std::cell::Cell;
 use std::rc::Rc;
 
-/// Binary type of Node takes two inputs nodes (`x` and `y`) and operation (`op`) on them. 
-/// This type provides caching of the computations and invaludation of its cache and dependent nodes.
-pub struct Binary<T: Fn(f32,f32) -> f32> {
-    x: Rc<dyn Node<Output = f32>>,
-    y: Rc<dyn Node<Output = f32>>,
-    op: T,
-    cached: Cache<f32>,
+/// Input node present some f32 input value. This node stores a list of dependent nodes `dep`
+/// and invalidates their caches when the input values is changed.
+pub struct Input<'a> {
+    _name: &'a str,
+    value: Cell<f32>,
     dep: Dependencies<f32>
 }
 
-impl<T: Fn(f32,f32) -> f32 + 'static> Binary<T> {
-    pub fn new(x: Rc<dyn Node<Output = f32>>, y: Rc<dyn Node<Output = f32>>, op: T) -> Rc<Self> {
-        // Create new binary node
-        let tmp = Rc::new(
-            Self { x: x.clone(), y: y.clone(), op, dep: Default::default(), cached: Cache::new() }
-        );
-        // Add a new node to the lists of the input nodes
-        x.add_dependent(tmp.clone());
-        y.add_dependent(tmp.clone());
-        tmp
+impl<'a> Input<'a> {
+    pub fn new(_name: &'a str) -> Input<'a>{
+        Input { _name, value: Default::default(), dep: Default::default() }
+    }
+
+    /// Set new value `x` and require invalidation of the caches of the dependent nodes.
+    pub fn set(&self, x: f32) {
+        self.invalidate();
+        self.value.set(x);
     }
 }
 
-impl<T: Fn(f32,f32) -> f32> Node for Binary<T> {
+impl<'a> Node for Input<'a> {
     type Output = f32;
 
-    fn compute(&self) -> f32 {
-        // Get cached value or compute the result
-        self.cached.get_or_else(|| (self.op)(self.x.compute(), self.y.compute()))
+    fn compute(&self) -> Self::Output {
+        self.value.get()
     }
 
+    /// Require invalidation of the dependent nodes.
     fn invalidate(&self) {
-        self.cached.invalidate();
         self.dep.invalidate();
     }
 
-    fn add_dependent(&self, n: Rc<dyn Node<Output = f32>>) {
+    fn add_dependent(&self, n: Rc<dyn Node<Output = Self::Output>>) {
         self.dep.add(n);
     }
 }
@@ -86,12 +83,62 @@ impl<T: Fn(f32) -> f32> Node for Unary<T> {
     }
 }
 
+
+/// Binary type of Node takes two inputs nodes (`x` and `y`) and operation (`op`) on them. 
+/// This type provides caching of the computations and invaludation of its cache and dependent nodes.
+pub struct Binary<T: Fn(f32,f32) -> f32> {
+    x: Rc<dyn Node<Output = f32>>,
+    y: Rc<dyn Node<Output = f32>>,
+    op: T,
+    cached: Cache<f32>,
+    dep: Dependencies<f32>
+}
+
+impl<T: Fn(f32,f32) -> f32 + 'static> Binary<T> {
+    pub fn new(x: Rc<dyn Node<Output = f32>>, y: Rc<dyn Node<Output = f32>>, op: T) -> Rc<Self> {
+        // Create new binary node
+        let tmp = Rc::new(
+            Self { x: x.clone(), y: y.clone(), op, dep: Default::default(), cached: Cache::new() }
+        );
+        // Add a new node to the lists of the input nodes
+        x.add_dependent(tmp.clone());
+        y.add_dependent(tmp.clone());
+        tmp
+    }
+}
+
+impl<T: Fn(f32,f32) -> f32> Node for Binary<T> {
+    type Output = f32;
+
+    fn compute(&self) -> f32 {
+        // Get cached value or compute the result
+        self.cached.get_or_else(|| (self.op)(self.x.compute(), self.y.compute()))
+    }
+
+    fn invalidate(&self) {
+        self.cached.invalidate();
+        self.dep.invalidate();
+    }
+
+    fn add_dependent(&self, n: Rc<dyn Node<Output = f32>>) {
+        self.dep.add(n);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
 
     use crate::create_input;
     use super::*;
+
+    #[test]
+    fn test_input() {
+        let input = Input::new("x1");
+        assert_eq!(input.compute(), 0.0);
+        input.set(5.0);
+        assert_eq!(input.compute(), 5.0);
+    }
 
     #[test]
     fn test_unary_op() {
