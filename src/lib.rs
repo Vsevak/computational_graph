@@ -1,4 +1,4 @@
-//! computational_node allow to create direct acyclic graph of operations on input values with caching inside nodes.
+//! computational_graph allows to create direct acyclic graph of operations on input values with caching inside the nodes.
 //! Graph does not create common storage for the node, the graph consists of individual nodes and links for computation and cache invalidation.
 //! # Example:
 //! ```rust
