@@ -6,7 +6,7 @@ use crate::operations::{Input, Binary, Unary};
 use std::rc::Rc;
 
 /// Creates input node of the compute graph with a given name
-pub fn create_input<'a>(name: &'a str) -> Rc<Input<'a>>{
+pub fn create_input(name: &str) -> Rc<Input>{
     Rc::new( Input::new(name) )
 }
 

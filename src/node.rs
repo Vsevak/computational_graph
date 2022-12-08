@@ -69,7 +69,9 @@ impl<T> Dependencies<T> {
 
     pub(crate) fn invalidate(&self) {
         for d in self.vec.borrow().iter() {
-            d.upgrade().map(|x| x.invalidate());
+            if let Some(x) = d.upgrade() {
+                 x.invalidate()
+                }
         }
     }
 
